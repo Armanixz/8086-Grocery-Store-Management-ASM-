@@ -1,0 +1,547 @@
+================================================================================
+GROCERY STORE MANAGEMENT SYSTEM - 8086 ASSEMBLY PROJECT
+GUIDELINES & FEATURE DOCUMENTATION
+================================================================================
+
+PROJECT OVERVIEW:
+This is a complete e-commerce system for a grocery store built in 8086 Assembly.
+Customers can browse products, add to cart, search items, rate experiences, and
+make payments. Admin can manage products with PIN protection.
+
+================================================================================
+
+FEATURE 1: CATEGORY & PRODUCT MANAGEMENT
+================================================================================
+
+HOW IT WORKS:
+1. When user selects option "1" from main menu, the CategorySelection procedure
+   is called.
+
+2. The system displays 4 categories:
+   - Category 1: STAPLES (Rice, Flour, Sugar)
+   - Category 2: SPICES (Turmeric, Cumin, Chili)
+   - Category 3: DAIRY (Milk, Yogurt, Cheese)
+   - Category 4: DRY FOODS (Lentils, Chickpeas, Beans)
+
+3. Each category has:
+   - A product list string (stored in .DATA section)
+   - A count of products in that category
+   - Price array for each product (using multi-digit division logic)
+
+4. User enters category number [1-4]:
+   - If valid: Shows all products with prices in that category
+   - If invalid: Displays error message and asks user to re-enter
+
+5. Multi-digit division logic:
+   - PrintNumber procedure divides price by 10 repeatedly
+   - Each remainder is pushed to stack and then popped to print individual digits
+   - Example: Price 150 becomes "150" printed digit by digit
+
+6. After displaying products, system calls AddToCart procedure to let user
+   select items from the displayed category.
+
+DATA STRUCTURES:
+- StaplesProducts: String containing "1-Rice 150TK  2-Flour 80TK  3-Sugar 120TK"
+- SpicesPrices: DB 200, 180, 150 (array of prices)
+- StaplesCount: DB 3 (number of items)
+
+EXAMPLE FLOW:
+Main Menu → User enters "1" → Category Menu appears
+→ User enters "2" → Shows SPICES products
+→ User selects item → Price calculated and displayed
+
+================================================================================
+
+FEATURE 2: ADD ITEM & REMOVE LAST ITEM
+================================================================================
+
+HOW IT WORKS:
+
+ADD ITEM PROCESS:
+1. After products are displayed, AddToCart procedure prompts user to enter
+   item number (1-3 for each category).
+
+2. The system:
+   - Stores item in Cart array
+   - Increments CartCount (tracks number of items in cart)
+   - Calls CalculatePrice to get item price
+   - Adds price to CartTotal using: CartTotal = CartTotal + CurrentPrice
+   - LastItemPrice is stored (for potential removal)
+
+3. System displays confirmation: "[Item] - Item Added to Cart!"
+   and shows "Current Total: [amount] TK"
+
+4. User can continue adding more items or return to main menu.
+
+DATA STRUCTURES:
+- Cart: DB 50 DUP(0) - Array storing up to 50 items
+- CartCount: DB 0 - Number of items currently in cart
+- CartTotal: DW 0 - Running total in Taka
+- LastItemPrice: DW 0 - Price of last added item for removal
+
+REMOVE ITEM PROCESS (optional during checkout):
+1. During checkout, system asks: "Remove Last Item? (Y/N)"
+
+2. If user presses 'Y':
+   - Subtract LastItemPrice from CartTotal
+   - Decrement CartCount
+   - Display: "Item Removed! Updated Total: [amount] TK"
+
+3. If user presses 'N':
+   - Continue to discount/payment section
+
+EXAMPLE FLOW:
+ShowStaples → Add Rice 150TK → CartTotal = 150, CartCount = 1
+→ Add Flour 80TK → CartTotal = 230, CartCount = 2
+
+================================================================================
+
+FEATURE 3: DISCOUNT & PAYMENT SYSTEM
+================================================================================
+
+HOW IT WORKS:
+
+DISCOUNT ELIGIBILITY CHECK:
+1. When user selects "2 - View Cart & Checkout" from main menu.
+
+2. System checks if cart is empty:
+   - If empty: Shows error and returns to main menu
+   - If items exist: Proceeds to discount section
+
+3. Displays current cart total:
+   "YOUR TOTAL BILL IS: [amount] TK"
+
+4. Eligibility calculation:
+   - If CartTotal >= 500 TK → User is ELIGIBLE for discount
+   - If CartTotal < 500 TK → Skip discount section
+
+DISCOUNT CODE VALIDATION:
+1. If eligible, system prompts: "Enter Discount Code (5 digits)"
+
+2. Valid discount codes stored:
+   - "12345"
+   - "54321"
+   - "99999"
+
+3. User enters 5-digit code:
+   - If matches any valid code: Apply 10% discount
+     * New Total = CartTotal - (CartTotal / 10)
+     * Shows: "Valid Discount Code Applied! 10% OFF"
+   - If invalid: Shows "Invalid Discount Code!" and returns to checkout
+
+PAYMENT METHOD SELECTION:
+1. System displays payment options:
+   - "1 - Cash Payment"
+   - "2 - Cash on Delivery"
+
+2. User enters payment choice [1-2]:
+
+3. CASH PAYMENT (Option 1):
+   - Displays: "Payment Received! Thank you for shopping!"
+   - Clears cart (CartCount = 0, CartTotal = 0)
+   - Returns to main menu
+
+4. CASH ON DELIVERY (Option 2):
+   - Displays: "Order Placed! Will be delivered soon!"
+   - Clears cart (CartCount = 0, CartTotal = 0)
+   - Returns to main menu
+
+DATA STRUCTURES:
+- DiscountApplied: DB 0 - Flag indicating if discount was applied
+- DiscountCodes: DB '12345', '54321', '99999' - Valid codes
+- CartTotal: DW 0 - Current total amount
+
+EXAMPLE FLOW:
+Cart Total 700 TK → Eligible for discount
+→ Enter code "12345" → Valid! New total = 630 TK
+→ Select "1" Cash Payment → Order complete
+
+================================================================================
+
+FEATURE 4: SEARCH PRODUCT & FILTERING
+================================================================================
+
+HOW IT WORKS:
+
+SEARCH MENU:
+1. User selects "3 - Search Products" from main menu.
+
+2. System displays search options:
+   - "1 - Search by Product Code"
+   - "2 - Search by First Letter"
+   - "3 - Search by Category"
+
+SEARCH BY PRODUCT CODE:
+1. Prompts: "Enter Product Code:"
+
+2. User enters a single digit code.
+
+3. System searches all products for exact match:
+   - If found: Displays product with price
+   - If not found: Shows "No Products Found!"
+
+4. Example: User enters "1" → Shows "Rice 150TK" from Staples
+
+SEARCH BY FIRST LETTER:
+1. Prompts: "Enter First Letter:"
+
+2. User enters first letter of product (R, F, S, T, C, M, Y, L, B, etc.)
+
+3. System searches all products for names starting with that letter:
+   - If match found: Shows all matching products
+   - If no match: Shows "No Products Found!"
+
+4. Example: User enters "R" → Shows all products starting with R (Rice)
+
+SEARCH BY CATEGORY:
+1. Prompts: "Enter Category Code [1-4]:"
+   - 1 = STAPLES
+   - 2 = SPICES
+   - 3 = DAIRY
+   - 4 = DRY FOODS
+
+2. User enters category number.
+
+3. System displays all products in that category:
+   - If valid category (1-4): Shows all products
+   - If invalid: Shows error message
+
+4. Example: User enters "3" → Shows all DAIRY products
+
+SEARCH AGAIN FUNCTIONALITY:
+1. After displaying search results, system asks: "Search Again? (Y/N)"
+
+2. If user presses 'Y':
+   - Returns to search menu (Feature 4 restarts)
+   - User can perform new search
+
+3. If user presses 'N':
+   - Returns to main menu
+   - User can select other options
+
+NO MATCH HANDLING:
+- System displays: "No Products Found!"
+- Automatically asks "Search Again? (Y/N)"
+- User can retry search with different criteria
+
+DATA STRUCTURES:
+- SearchOption: DB 0 - Stores which search type user selected
+- Individual product lists for searching
+
+EXAMPLE FLOW:
+Main Menu → "3" → Search Menu → "2" (By Letter)
+→ "R" entered → "Rice 150TK" displayed
+→ "Y" pressed → Back to Search Menu
+
+================================================================================
+
+FEATURE 5: CUSTOMER REVIEW & RATING SYSTEM (1-5 SCALE)
+================================================================================
+
+HOW IT WORKS:
+
+RATING ENTRY:
+1. User selects "4 - Rate Your Experience" from main menu.
+
+2. System displays: "Rate your experience (1-5 stars):"
+
+3. User enters a single digit [1-5]:
+   - 1 = Very Poor
+   - 2 = Poor
+   - 3 = Average
+   - 4 = Good
+   - 5 = Excellent
+
+INPUT VALIDATION:
+1. System checks if rating is within valid range:
+   - If AL < 1: Shows "Invalid Input! Please try again."
+   - If AL > 5: Shows "Invalid Input! Please try again."
+   - If 1-5: Rating is stored and processed
+
+2. Invalid input returns user to main menu.
+
+RATING STORAGE:
+1. Each valid rating is stored in Ratings array:
+   - Ratings DB 10 DUP(0) - Can store up to 10 ratings
+   - RatingCount: DB 0 - Tracks number of ratings stored
+
+2. Rating storage process:
+   - Get offset to Ratings array
+   - Store current rating at [Ratings + RatingCount]
+   - Increment RatingCount
+   - Example: First rating (5) stored at Ratings[0]
+             Second rating (4) stored at Ratings[1]
+
+AVERAGE RATING CALCULATION:
+1. CalculateAverageRating procedure:
+   - Sum all ratings in array
+   - Divide by RatingCount to get average
+   - Uses integer division (no decimals)
+
+2. Formula:
+   Average = (Sum of all ratings) / (Number of ratings)
+
+3. Example:
+   Ratings: 5, 4, 5, 3, 4 → Sum = 21, Count = 5 → Average = 4
+
+RATING DISPLAY:
+1. After storing rating, system displays:
+   - "Thank you for your rating!"
+   - "Average Store Rating: [calculated average]"
+
+2. Average is calculated using PrintNumber procedure (multi-digit division)
+
+3. Each new rating updates the average automatically
+
+PERSISTENCE:
+1. Ratings are stored in memory during program execution.
+
+2. RatingCount prevents array overflow (checks if count < 10).
+
+3. Data persists as long as program is running.
+
+DATA STRUCTURES:
+- Ratings: DB 10 DUP(0) - Array storing individual ratings
+- RatingCount: DB 0 - Number of ratings entered so far
+- CalculateAverageRating: Procedure handling average calculation
+
+EXAMPLE FLOW:
+Main Menu → "4" (Rate) → "4" entered (4 stars)
+→ Rating stored → "Average Store Rating: 4" displayed
+→ Return to main menu
+
+Second rating entered:
+"5" entered → Rating stored → "Average Store Rating: 4" (4+5=9, 9/2=4)
+
+================================================================================
+
+FEATURE 6: ADMIN PANEL – ADD/DELETE/UPDATE ITEMS
+================================================================================
+
+HOW IT WORKS:
+
+ADMIN ACCESS:
+1. User selects "5 - Admin Panel" from main menu.
+
+2. System displays: "Enter PIN (4 digits):"
+
+3. User enters 4-digit PIN.
+
+PIN VALIDATION:
+1. PIN is entered character by character:
+   - Loop 4 times to get each digit
+   - Store in AdminPIN array
+
+2. System compares entered PIN with correct PIN (stored as '1234'):
+   - Correct PIN: "1234"
+
+3. Comparison process:
+   - Move pointer to entered PIN string
+   - Move pointer to correct PIN string
+   - Compare each character (SI with DI)
+   - If all 4 match: Access granted
+   - If any mismatch: Access denied
+
+PIN VALIDATION RESULTS:
+- CORRECT PIN "1234":
+  * Displays: "Admin Access Granted!"
+  * Proceeds to Admin Menu
+  * User can perform admin operations
+
+- WRONG PIN (any other 4 digits):
+  * Displays: "Wrong PIN! Access Denied."
+  * Returns to main menu
+  * No admin access given
+
+ADMIN MENU OPTIONS:
+After successful login (PIN "1234"), system displays:
+
+"ADMIN MENU:
+1 - Add New Item
+2 - Delete Item
+3 - Update Item Price
+4 - Update Item Quantity
+5 - Return to Main Menu
+
+Enter Choice [1-5]:"
+
+OPTION 1 - ADD NEW ITEM:
+1. Prompts: "Enter Item Name:"
+2. Prompts: "Enter Item Price:"
+3. Prompts: "Enter Item Quantity:"
+4. Adds new item to product database
+5. Displays: "New Item Added Successfully!"
+6. Returns to admin menu
+
+OPTION 2 - DELETE ITEM:
+1. Prompts: "Enter Item Number to Delete:"
+2. Removes item from database
+3. Updates product count
+4. Displays: "Item Deleted Successfully!"
+5. Returns to admin menu
+
+OPTION 3 - UPDATE ITEM PRICE:
+1. Prompts: "Enter Item Number:"
+2. Prompts: "Enter New Price:"
+3. Updates price array for selected item
+4. Displays: "Item Price Updated!"
+5. Returns to admin menu
+
+OPTION 4 - UPDATE ITEM QUANTITY:
+1. Prompts: "Enter Item Number:"
+2. Prompts: "Enter New Quantity:"
+3. Updates quantity for selected item
+4. Displays: "Item Quantity Updated!"
+5. Returns to admin menu
+
+OPTION 5 - RETURN TO MAIN MENU:
+1. Exits admin panel
+2. Returns to main menu
+3. User can select other options
+
+SECURITY FEATURES:
+1. PIN protection prevents unauthorized access
+2. Incorrect PIN denies all admin access
+3. Only 1 correct PIN (1234)
+4. Flexible - can be changed in code (line: CorrectPIN DB '1234')
+
+DATA STRUCTURES:
+- AdminPIN: DB 5 DUP(0) - Stores entered PIN (4 digits + 1 null)
+- CorrectPIN: DB '1234' - Correct PIN value
+- Admin menus and prompts for each operation
+
+EXAMPLE FLOW:
+Main Menu → "5" (Admin) → "1234" entered
+→ "Admin Access Granted!" → Admin Menu appears
+→ "1" selected → "New Item Added Successfully!"
+→ "5" selected → Return to Main Menu
+
+FAILED LOGIN EXAMPLE:
+Main Menu → "5" (Admin) → "5678" entered
+→ "Wrong PIN! Access Denied."
+→ Back to Main Menu (no admin access)
+
+================================================================================
+
+PROGRAM FLOW SUMMARY
+================================================================================
+
+START
+  ↓
+WELCOME MESSAGE & MAIN MENU
+  ↓
+USER CHOICE [1-6]
+  ├─→ 1: BROWSE PRODUCTS
+  │     ├─ Select Category [1-4]
+  │     ├─ View Products
+  │     └─ Add Items to Cart
+  │
+  ├─→ 2: VIEW CART & CHECKOUT
+  │     ├─ Check Discount Eligibility
+  │     ├─ Enter Discount Code (if eligible)
+  │     ├─ Select Payment Method
+  │     └─ Clear Cart & Return
+  │
+  ├─→ 3: SEARCH PRODUCTS
+  │     ├─ By Code / By Letter / By Category
+  │     ├─ Display Results
+  │     └─ Search Again? (Y/N)
+  │
+  ├─→ 4: RATE EXPERIENCE
+  │     ├─ Enter Rating [1-5]
+  │     ├─ Validate Input
+  │     └─ Calculate & Display Average
+  │
+  ├─→ 5: ADMIN PANEL
+  │     ├─ Enter PIN
+  │     ├─ If correct: Admin Menu
+  │     │   ├─ Add Item
+  │     │   ├─ Delete Item
+  │     │   ├─ Update Price
+  │     │   ├─ Update Quantity
+  │     │   └─ Return to Menu
+  │     └─ If wrong: Return to Main Menu
+  │
+  └─→ 6: EXIT
+        ↓
+     THANK YOU MESSAGE
+        ↓
+     END PROGRAM
+
+================================================================================
+
+KEY TECHNICAL DETAILS
+================================================================================
+
+1. INTERRUPTS USED:
+   - INT 21H, AH=1: Get single character input
+   - INT 21H, AH=2: Display single character
+   - INT 21H, AH=9: Display string (terminated with '$')
+   - INT 21H, AH=4CH: Exit program
+
+2. REGISTERS USED:
+   - AX: Input/Output, calculations
+   - AL: Single character operations
+   - BX: Array indexing
+   - CX: Loop counter
+   - DX: String/port operations
+   - SI, DI: String comparison pointers
+
+3. MULTI-DIGIT DIVISION LOGIC:
+   - Divides number by 10 repeatedly
+   - Pushes remainders to stack
+   - Pops and prints each digit
+   - Used for displaying prices (150 → "150")
+
+4. CART MANAGEMENT:
+   - Items stored in Cart array
+   - CartCount tracks quantity of items
+   - CartTotal accumulates price
+   - LastItemPrice enables removal
+
+5. DATA ORGANIZATION:
+   - All strings terminated with '$' for INT 21H display
+   - All line breaks use 0DH (CR) + 0AH (LF)
+   - Parallel arrays for prices and product info
+
+================================================================================
+
+TESTING GUIDELINES
+================================================================================
+
+TEST CASE 1: Browse & Add Items
+- Select option "1"
+- Choose category "1" (Staples)
+- Select item "1" (Rice - 150 TK)
+- Expected: "Item Added to Cart! Current Total: 150 TK"
+
+TEST CASE 2: Search Functionality
+- Select option "3"
+- Choose search option "3" (By Category)
+- Enter category "2" (Spices)
+- Expected: Shows all spices products
+
+TEST CASE 3: Discount Eligibility
+- Add items totaling 500+ TK
+- Select option "2" (Checkout)
+- Expected: Discount eligibility message appears
+
+TEST CASE 4: Admin Access
+- Select option "5" (Admin)
+- Enter PIN "1234"
+- Expected: "Admin Access Granted! ADMIN MENU appears"
+
+TEST CASE 5: Admin Access Denied
+- Select option "5" (Admin)
+- Enter PIN "9999"
+- Expected: "Wrong PIN! Access Denied."
+
+TEST CASE 6: Rating System
+- Select option "4" (Rate)
+- Enter rating "5"
+- Expected: "Thank you for your rating! Average Store Rating: 5"
+
+================================================================================
+
+END OF GUIDELINES
+================================================================================
